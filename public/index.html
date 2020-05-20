@@ -23,7 +23,14 @@
 
       // the link to your model provided by Teachable Machine export panel
       const URL = "https://teachablemachine.withgoogle.com/models/6iVP_iE9X/";
-      let model, webcam, ctx, labelContainer, maxPredictions, gameStatus, audio, hasStarted;
+      let model,
+        webcam,
+        ctx,
+        labelContainer,
+        maxPredictions,
+        gameStatus,
+        audio,
+        hasStarted;
 
       const sallyUpData = window.sallyUpData;
 
@@ -79,8 +86,8 @@
             prediction[i].probability.toFixed(2);
           labelContainer.childNodes[i].innerHTML = classPrediction;
         }
-        const probabilityDown = prediction[0].probability
-        const probabilityUp = prediction[0].probability
+        const probabilityDown = prediction[0].probability;
+        const probabilityUp = prediction[0].probability;
 
         const isCurrentPoseDown = probabilityDown > probabilityUp;
 
@@ -89,14 +96,17 @@
         const isSallyDown1secBefore = sallyUpData[currentSecond - 1];
         const isSallyDownNow = sallyUpData[currentSecond];
         const isSallyDown1secAfter = sallyUpData[currentSecond + 1];
-        const isHit = isSallyDownNow === isCurrentPoseDown || 
-          isSallyDown1secBefore === isCurrentPoseDown || 
+        const isHit =
+          isSallyDownNow === isCurrentPoseDown ||
+          isSallyDown1secBefore === isCurrentPoseDown ||
           isSallyDown1secAfter === isCurrentPoseDown;
-        document.getElementById('signal').className = `score ${isHit ? 'hit' : 'miss'}`;
+        document.getElementById("signal").className = `score ${
+          isHit ? "hit" : "miss"
+        }`;
         // finally draw the poses
         drawPose(pose);
         if (!hasStarted) {
-          audio.play()
+          audio.play();
           hasStarted = true;
         }
       }
