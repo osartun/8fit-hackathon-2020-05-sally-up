@@ -1,14 +1,79 @@
-.score {
+body {
+  display: flex;
+  flex-direction: column;
+  font-family: "Public Sans", sans-serif;
+  align-items: center;
+}
+
+.video-container {
+  border-width: thin;
+  border-style: inset;
+  border-color: light;
+  border-radius: 10px;
+}
+
+.start-button {
+  margin-top: 100px;
+  background-color: limegreen;
+  height: 100px;
   width: 100px;
+  border-radius: 100px;
+  font-size: xx-large;
+  color: white;
+}
+
+.pause-button {
+  margin-top: 15px;
+  background-color: darkred;
+  height: 50px;
+  width: 50px;
+  border-radius: 100px;
+  color: white;
+}
+
+.score {
+  align-items: center;
+  justify-content: center;
+  width: 200px;
   height: 100px;
   transition: background-color 0.1s;
   background-color: grey;
+  font-size: large;
+  color: white;
+}
+
+.score::after {
+  content: "?";
 }
 
 .hit {
-  background-color: olivedrab;
+  background-color: lime;
+}
+
+.hit::after {
+  content: "Keep it up!";
 }
 
 .miss {
   background-color: palevioletred;
+}
+
+.miss::after {
+  content: "Miss!";
+}
+
+.current-position {
+  font-size: 24px;
+}
+
+.current-position::after {
+  content: "???";
+}
+
+.down::after {
+  content: "Squatting";
+}
+
+.up::after {
+  content: "Up";
 }

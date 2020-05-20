@@ -1,24 +1,47 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Sally Up!</title>
+    <title>8fit Sally Up!</title>
     <link rel="stylesheet" href="index.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500&display=swap"
+      rel="stylesheet"
+    />
   </head>
   <body>
-    <div>Teachable Machine Pose Model</div>
+    <div>
+      <h1>Sally Up! Challenge</h1>
+    </div>
     <div>
       <audio src="moby-flower-sally-up.mp3" id="sally-up-mp3"></audio>
     </div>
-    <button type="button" onclick="start()">Start</button>
-    <button type="button" onclick="pause()">Pause</button>
-    <div><canvas id="canvas"></canvas></div>
-    <div id="label-container"></div>
-    <div id="game-status"></div>
-    <div id="signal" class="score"></div>
+    <div>
+      <canvas
+        class="video-container"
+        id="canvas"
+        width="400"
+        height="400"
+      ></canvas>
+    </div>
+    <div
+      style="
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        width: 400px;
+      "
+    >
+      <span class="current-position" id="current-position" />
+      <span id="score" class="score"></span>
+    </div>
+    <button type="button" class="start-button" onclick="start()">GO!</button>
+    <button type="button" class="pause-button" onclick="pause()">Pause</button>
     <script src="sally-up-data.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/pose@0.8.3/dist/teachablemachine-pose.min.js"></script>
     <script type="text/javascript">
+      const currentPositionEl = document.getElementById("current-position");
+      const scoreEl = document.getElementById("score");
       // More API functions here:
       // https://github.com/googlecreativelab/teachablemachine-community/tree/master/libraries/pose
 
@@ -48,21 +71,14 @@
 
         // Convenience function to setup a webcam
         const flip = true; // whether to flip the webcam
-        webcam = new tmPose.Webcam(200, 200, flip); // width, height, flip
+        webcam = new tmPose.Webcam(400, 400, flip); // width, height, flip
         await webcam.setup(); // request access to the webcam
         webcam.play();
         window.requestAnimationFrame(loop);
 
         // append/get elements to the DOM
         const canvas = document.getElementById("canvas");
-        canvas.width = 200;
-        canvas.height = 200;
         ctx = canvas.getContext("2d");
-        labelContainer = document.getElementById("label-container");
-        for (let i = 0; i < maxPredictions; i++) {
-          // and class labels
-          labelContainer.appendChild(document.createElement("div"));
-        }
 
         // Initialize audio & gameStatus
         audio = document.getElementById("sally-up-mp3");
@@ -101,30 +117,29 @@
         const { pose, posenetOutput } = await model.estimatePose(webcam.canvas);
         // Prediction 2: run input through teachable machine classification model
         const prediction = await model.predict(posenetOutput);
-
-        for (let i = 0; i < maxPredictions; i++) {
-          const classPrediction =
-            prediction[i].className +
-            ": " +
-            prediction[i].probability.toFixed(2);
-          labelContainer.childNodes[i].innerHTML = classPrediction;
-        }
         const probabilityDown = prediction[0].probability;
         const probabilityUp = prediction[1].probability;
 
-        const isCurrentPoseDown = probabilityDown > probabilityUp;
+        let currentPosition;
+        if (probabilityDown > 0.95) {
+          currentPosition = "down";
+        } else if (probabilityUp > 0.95) {
+          currentPosition = "up";
+        }
+        currentPositionEl.className = `current-position ${currentPosition}`;
 
         const currentSecond = parseInt(audio.currentTime);
         const isSallyDown = sallyUpData[currentSecond];
-        const isHit = isSallyDown === isCurrentPoseDown;
-        document.getElementById("signal").className = `score ${
-          isHit ? "hit" : "miss"
-        }`;
-        gameStatus.innerHTML = `
-          currentSecond: ${currentSecond}<br />
-          isCurrentPoseDown: ${isCurrentPoseDown}<br />
-          isSallyDown: ${[isSallyDown].toString()}
-        `;
+        let score;
+        if (
+          (isSallyDown && currentPosition === "down") ||
+          (!isSallyDown && currentPosition === "up")
+        ) {
+          score = "hit";
+        } else if (currentPosition !== undefined) {
+          score = "miss";
+        }
+        scoreEl.className = `score ${score}`;
         // finally draw the poses
         drawPose(pose);
 
