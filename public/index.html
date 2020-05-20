@@ -7,7 +7,7 @@
   <body>
     <div>Teachable Machine Pose Model</div>
     <div>
-      <audio src="moby-flower-sally-up.mp3" id="sally-up-mp3" controls></audio>
+      <audio src="moby-flower-sally-up.mp3" id="sally-up-mp3"></audio>
     </div>
     <button type="button" onclick="init()">Start</button>
     <div><canvas id="canvas"></canvas></div>
@@ -22,7 +22,7 @@
 
       // the link to your model provided by Teachable Machine export panel
       const URL = "https://teachablemachine.withgoogle.com/models/6iVP_iE9X/";
-      let model, webcam, ctx, labelContainer, maxPredictions, gameStatus, audio;
+      let model, webcam, ctx, labelContainer, maxPredictions, gameStatus, audio, hasStarted;
 
       const sallyUpData = [false,false,false,true,true,true,true,false,false,true,true,true,true,false,false,true,true,true,true,false,false,true,true,true,true,false,false,true,true,true,true,false,false,true,true,true,true,false,true,true,true,true,true,false,true,true,true,true,true,true,true,true,true,true,true,false,true,true,true,true,false,false,true,true,true,true,true,false,true,true,true,true,false,false,true,true,true,true,false,false,true,true,true,true,true,true,true,true,true,true,true,false,true,true,true,true,false,false,true,true,true,true,true,false,true,true,true,true,false,false,true,true,true,true,false,false,true,true,true,true,true,true,true,true,true,true,false,false,true,true,true,true,false,false,true,true,true,true,false,false,true,true,true,true,false,false,true,true,true,true,false,false,true,true,true,true,false,false,true,true,true,true,false,false,true,true,true,true,false,false,true,true,true,true,false,true,true,true,true,true,false,false,true,true,true,true,false,true,true,true,true,true,false,true,true,true,true,true,true,true,true,true,true]
 
@@ -90,6 +90,10 @@
         document.getElementById('signal').className = `score ${isHit ? 'hit' : 'miss'}`;
         // finally draw the poses
         drawPose(pose);
+        if (!hasStarted) {
+          audio.play()
+          hasStarted = true;
+        }
       }
 
       function drawPose(pose) {
