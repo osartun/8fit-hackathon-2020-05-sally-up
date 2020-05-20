@@ -9,7 +9,8 @@
     <div>
       <audio src="moby-flower-sally-up.mp3" id="sally-up-mp3"></audio>
     </div>
-    <button type="button" onclick="init()">Start</button>
+    <button type="button" onclick="start()">Start</button>
+    <button type="button" onclick="pause()">Pause</button>
     <div><canvas id="canvas"></canvas></div>
     <div id="label-container"></div>
     <div id="game-status"></div>
@@ -30,7 +31,9 @@
         maxPredictions,
         gameStatus,
         audio,
-        hasStarted;
+        hasStarted,
+        isInitialized,
+        isPaused;
 
       const sallyUpData = window.sallyUpData;
 
@@ -67,9 +70,29 @@
       }
 
       async function loop(timestamp) {
+        if (isPaused || !isInitialized) return;
         webcam.update(); // update the webcam frame
         await predict();
         window.requestAnimationFrame(loop);
+      }
+
+      async function start() {
+        if (!isInitialized) {
+          isInitialized = true;
+          await init();
+          isPaused = false;
+          return;
+        }
+        if (isPaused) {
+          isPaused = false;
+          window.requestAnimationFrame(loop);
+          audio.play();
+        }
+      }
+
+      function pause() {
+        isPaused = true;
+        audio.pause();
       }
 
       async function predict() {
