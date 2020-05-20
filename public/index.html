@@ -86,8 +86,12 @@
 
         const currentSecond = parseInt(audio.currentTime);
         gameStatus.innerHTML = currentSecond;
-        const isSallyDown = sallyUpData[currentSecond];
-        const isHit = isSallyDown === isCurrentPoseDown;
+        const isSallyDown1secBefore = sallyUpData[currentSecond - 1];
+        const isSallyDownNow = sallyUpData[currentSecond];
+        const isSallyDown1secAfter = sallyUpData[currentSecond + 1];
+        const isHit = isSallyDownNow === isCurrentPoseDown || 
+          isSallyDown1secBefore === isCurrentPoseDown || 
+          isSallyDown1secAfter === isCurrentPoseDown;
         document.getElementById('signal').className = `score ${isHit ? 'hit' : 'miss'}`;
         // finally draw the poses
         drawPose(pose);
