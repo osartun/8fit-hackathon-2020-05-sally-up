@@ -58,6 +58,8 @@
         isInitialized,
         isPaused;
 
+      const DOWN = "down";
+      const UP = "up";
       const sallyUpData = window.sallyUpData;
 
       async function init() {
@@ -122,19 +124,26 @@
 
         let currentPosition;
         if (probabilityDown > 0.95) {
-          currentPosition = "down";
+          currentPosition = DOWN;
         } else if (probabilityUp > 0.95) {
-          currentPosition = "up";
+          currentPosition = UP;
         }
         currentPositionEl.className = `current-position ${currentPosition}`;
 
         const currentSecond = parseInt(audio.currentTime);
-        const isSallyDown = sallyUpData[currentSecond];
+        const currentPositionInData = currentSecond * 5;
+        const sallyUpDataCurrent = [
+          sallyUpData[currentPositionInData - 2],
+          sallyUpData[currentPositionInData - 1],
+          sallyUpData[currentPositionInData],
+          sallyUpData[currentPositionInData + 1],
+          sallyUpData[currentPositionInData + 2],
+          sallyUpData[currentPositionInData + 3],
+        ]
+          .filter((entry) => entry !== undefined)
+          .map((isDown) => (isDown ? DOWN : UP));
         let score;
-        if (
-          (isSallyDown && currentPosition === "down") ||
-          (!isSallyDown && currentPosition === "up")
-        ) {
+        if (sallyUpDataCurrent.includes(currentPosition)) {
           score = "hit";
         } else if (currentPosition !== undefined) {
           score = "miss";
