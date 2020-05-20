@@ -1,0 +1,14 @@
+.score {
+  width: 100px;
+  height: 100px;
+  transition: background-color 0.1s;
+  background-color: grey;
+}
+
+.hit {
+  background-color: olivedrab;
+}
+
+.miss {
+  background-color: palevioletred;
+}

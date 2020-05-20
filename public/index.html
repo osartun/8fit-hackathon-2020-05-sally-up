@@ -2,6 +2,7 @@
 <html>
   <head>
     <title>Sally Up!</title>
+    <link rel="stylesheet" href="index.css" />
   </head>
   <body>
     <div>Teachable Machine Pose Model</div>
@@ -12,6 +13,7 @@
     <div><canvas id="canvas"></canvas></div>
     <div id="label-container"></div>
     <div id="game-status"></div>
+    <div id="signal" class="score"></div>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/pose@0.8.3/dist/teachablemachine-pose.min.js"></script>
     <script type="text/javascript">
@@ -21,6 +23,8 @@
       // the link to your model provided by Teachable Machine export panel
       const URL = "https://teachablemachine.withgoogle.com/models/6iVP_iE9X/";
       let model, webcam, ctx, labelContainer, maxPredictions, gameStatus, audio;
+
+      const sallyUpData = [false,false,false,true,true,true,true,false,false,true,true,true,true,false,false,true,true,true,true,false,false,true,true,true,true,false,false,true,true,true,true,false,false,true,true,true,true,false,true,true,true,true,true,false,true,true,true,true,true,true,true,true,true,true,true,false,true,true,true,true,false,false,true,true,true,true,true,false,true,true,true,true,false,false,true,true,true,true,false,false,true,true,true,true,true,true,true,true,true,true,true,false,true,true,true,true,false,false,true,true,true,true,true,false,true,true,true,true,false,false,true,true,true,true,false,false,true,true,true,true,true,true,true,true,true,true,false,false,true,true,true,true,false,false,true,true,true,true,false,false,true,true,true,true,false,false,true,true,true,true,false,false,true,true,true,true,false,false,true,true,true,true,false,false,true,true,true,true,false,false,true,true,true,true,false,true,true,true,true,true,false,false,true,true,true,true,false,true,true,true,true,true,false,true,true,true,true,true,true,true,true,true,true]
 
       async function init() {
         const modelURL = URL + "model.json";
@@ -74,9 +78,16 @@
             prediction[i].probability.toFixed(2);
           labelContainer.childNodes[i].innerHTML = classPrediction;
         }
+        const probabilityDown = prediction[0].probability
+        const probabilityUp = prediction[0].probability
 
-        gameStatus.innerHTML = audio.currentTime;
+        const isCurrentPoseDown = probabilityDown > probabilityUp;
 
+        const currentSecond = parseInt(audio.currentTime);
+        gameStatus.innerHTML = currentSecond;
+        const isSallyDown = sallyUpData[currentSecond];
+        const isHit = isSallyDown === isCurrentPoseDown;
+        document.getElementById('signal').className = `score ${isHit ? 'hit' : 'miss'}`;
         // finally draw the poses
         drawPose(pose);
       }
