@@ -20,7 +20,7 @@
 
       // the link to your model provided by Teachable Machine export panel
       const URL = "https://teachablemachine.withgoogle.com/models/6iVP_iE9X/";
-      let model, webcam, ctx, labelContainer, maxPredictions, gameStatus;
+      let model, webcam, ctx, labelContainer, maxPredictions, gameStatus, audio;
 
       async function init() {
         const modelURL = URL + "model.json";
@@ -49,15 +49,9 @@
           labelContainer.appendChild(document.createElement("div"));
         }
 
-        // Start playing audio
-        const audio = document.getElementById("sally-up-mp3");
+        // Initialize audio & gameStatus
+        audio = document.getElementById("sally-up-mp3");
         gameStatus = document.getElementById("game-status");
-        audio.addEventListener('play', () => {
-          gameStatus.innerHTML = "playing";
-        })
-        audio.addEventListener('pause', () => {
-          gameStatus.innerHTML = "";
-        })
       }
 
       async function loop(timestamp) {
@@ -80,6 +74,8 @@
             prediction[i].probability.toFixed(2);
           labelContainer.childNodes[i].innerHTML = classPrediction;
         }
+
+        gameStatus.innerHTML = audio.currentTime;
 
         // finally draw the poses
         drawPose(pose);
