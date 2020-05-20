@@ -105,6 +105,8 @@
         }`;
         // finally draw the poses
         drawPose(pose);
+
+        // Start audio if this is the first time this runs
         if (!hasStarted) {
           audio.play();
           hasStarted = true;
