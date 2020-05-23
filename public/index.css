@@ -20,6 +20,12 @@ body {
   border-radius: 100px;
   font-size: xx-large;
   color: white;
+  cursor: pointer;
+}
+
+.start-button:disabled {
+  background-color: grey;
+  cursor: default;
 }
 
 .pause-button {

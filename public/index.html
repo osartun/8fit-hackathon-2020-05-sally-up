@@ -34,7 +34,9 @@
       <span class="current-position" id="current-position" />
       <span id="score" class="score"></span>
     </div>
-    <button type="button" class="start-button" onclick="start()">GO!</button>
+    <button type="button" class="start-button" onclick="start()" disabled>
+      GO!
+    </button>
     <button type="button" class="pause-button" onclick="pause()">Pause</button>
     <script src="sally-up-data.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
@@ -62,7 +64,7 @@
       const UP = "up";
       const sallyUpData = window.sallyUpData;
 
-      async function init() {
+      async function setup() {
         const modelURL = URL + "model.json";
         const metadataURL = URL + "metadata.json";
 
@@ -74,9 +76,6 @@
         // Convenience function to setup a webcam
         const flip = true; // whether to flip the webcam
         webcam = new tmPose.Webcam(400, 400, flip); // width, height, flip
-        await webcam.setup(); // request access to the webcam
-        webcam.play();
-        window.requestAnimationFrame(loop);
 
         // append/get elements to the DOM
         const canvas = document.getElementById("canvas");
@@ -85,6 +84,14 @@
         // Initialize audio & gameStatus
         audio = document.getElementById("sally-up-mp3");
         gameStatus = document.getElementById("game-status");
+
+        document.querySelector(".start-button").disabled = false;
+      }
+
+      async function init() {
+        await webcam.setup(); // request access to the webcam
+        webcam.play();
+        window.requestAnimationFrame(loop);
       }
 
       async function loop(timestamp) {
@@ -110,6 +117,7 @@
 
       function pause() {
         isPaused = true;
+        webcam.pause();
         audio.pause();
       }
 
@@ -168,6 +176,8 @@
           tmPose.drawSkeleton(pose.keypoints, minPartConfidence, ctx);
         }
       }
+
+      window.requestAnimationFrame(setup);
     </script>
   </body>
 </html>
