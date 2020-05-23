@@ -32,7 +32,7 @@
       "
     >
       <span class="current-position" id="current-position" />
-      <span id="score" class="score"></span>
+      <span id="score" class="score-"></span>
     </div>
     <button type="button" class="start-button" onclick="start()" disabled>
       GO!
@@ -48,7 +48,12 @@
       // https://github.com/googlecreativelab/teachablemachine-community/tree/master/libraries/pose
 
       // the link to your model provided by Teachable Machine export panel
-      const URL = "https://teachablemachine.withgoogle.com/models/6iVP_iE9X/";
+      // const URL = "https://teachablemachine.withgoogle.com/models/6iVP_iE9X/";
+
+      // Uncomment this for development / debugging. For this you only need to lift your right fist
+      // in front of you.
+      const URL = "https://teachablemachine.withgoogle.com/models/sGa15i7Xt/";
+
       let model,
         webcam,
         ctx,
@@ -58,10 +63,13 @@
         audio,
         hasStarted,
         isInitialized,
-        isPaused;
+        isPaused,
+        currentStablePosition,
+        latestPositions = [];
 
       const DOWN = "down";
       const UP = "up";
+      const NONE = "none";
       const sallyUpData = window.sallyUpData;
 
       async function setup() {
@@ -97,7 +105,7 @@
       async function loop(timestamp) {
         if (isPaused || !isInitialized) return;
         webcam.update(); // update the webcam frame
-        await predict();
+        await runFrame();
         window.requestAnimationFrame(loop);
       }
 
@@ -110,6 +118,7 @@
         }
         if (isPaused) {
           isPaused = false;
+          webcam.play();
           window.requestAnimationFrame(loop);
           audio.play();
         }
@@ -121,50 +130,49 @@
         audio.pause();
       }
 
-      async function predict() {
-        // Prediction #1: run input through posenet
-        // estimatePose can take in an image, video or canvas html element
-        const { pose, posenetOutput } = await model.estimatePose(webcam.canvas);
+      async function getCurrentPosition(posenetOutput) {
         // Prediction 2: run input through teachable machine classification model
         const prediction = await model.predict(posenetOutput);
         const probabilityDown = prediction[0].probability;
         const probabilityUp = prediction[1].probability;
 
-        let currentPosition;
         if (probabilityDown > 0.95) {
-          currentPosition = DOWN;
+          return DOWN;
         } else if (probabilityUp > 0.95) {
-          currentPosition = UP;
+          return UP;
+        } else {
+          return NONE;
         }
-        currentPositionEl.className = `current-position ${currentPosition}`;
+      }
 
-        const currentSecond = parseInt(audio.currentTime);
-        const currentPositionInData = currentSecond * 5;
-        const sallyUpDataCurrent = [
-          sallyUpData[currentPositionInData - 2],
-          sallyUpData[currentPositionInData - 1],
-          sallyUpData[currentPositionInData],
-          sallyUpData[currentPositionInData + 1],
-          sallyUpData[currentPositionInData + 2],
-          sallyUpData[currentPositionInData + 3],
-        ]
-          .filter((entry) => entry !== undefined)
-          .map((isDown) => (isDown ? DOWN : UP));
-        let score;
-        if (sallyUpDataCurrent.includes(currentPosition)) {
-          score = "hit";
-        } else if (currentPosition !== undefined) {
-          score = "miss";
+      async function detectPositionChange(currentPosition, onPositionChange) {
+        latestPositions.push(currentPosition);
+        const last3Positions = latestPositions.slice(-3);
+        const [pos1, pos2, pos3] = last3Positions;
+        let stablePosition;
+        if (pos1 === pos2 && pos2 === pos3) {
+          stablePosition = pos1;
         }
-        scoreEl.className = `score ${score}`;
-        // finally draw the poses
+        if (currentStablePosition === undefined) {
+          currentStablePosition = stablePosition;
+        } else if (stablePosition !== currentStablePosition) {
+          await onPositionChange(stablePosition);
+          currentStablePosition = stablePosition;
+        }
+      }
+
+      async function onPositionChange(currentPosition) {
+        console.log(currentPosition);
+      }
+
+      async function runFrame() {
+        // Prediction #1: run input through posenet
+        // estimatePose can take in an image, video or canvas html element
+        const { pose, posenetOutput } = await model.estimatePose(webcam.canvas);
+        const currentPosition = await getCurrentPosition(posenetOutput);
+        console.log(currentPosition);
+        await detectPositionChange(currentPosition, onPositionChange);
         drawPose(pose);
-
-        // Start audio if this is the first time this runs
-        if (!hasStarted) {
-          audio.play();
-          hasStarted = true;
-        }
       }
 
       function drawPose(pose) {
