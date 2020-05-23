@@ -38,7 +38,7 @@
       GO!
     </button>
     <button type="button" class="pause-button" onclick="pause()">Pause</button>
-    <script src="sally-up-data.js"></script>
+    <script src="sally-up-data-event.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/pose@0.8.3/dist/teachablemachine-pose.min.js"></script>
     <script type="text/javascript">
@@ -54,6 +54,11 @@
       // in front of you.
       const URL = "https://teachablemachine.withgoogle.com/models/sGa15i7Xt/";
 
+      const DOWN = "down";
+      const UP = "up";
+      const NONE = "none";
+      const changeEvents = window.changeEvents;
+
       let model,
         webcam,
         ctx,
@@ -63,14 +68,10 @@
         audio,
         hasStarted,
         isInitialized,
-        isPaused,
+        isPaused = true,
         currentStablePosition,
-        latestPositions = [];
-
-      const DOWN = "down";
-      const UP = "up";
-      const NONE = "none";
-      const sallyUpData = window.sallyUpData;
+        latestPositions = [],
+        currentChangeEventIndex = 0;
 
       async function setup() {
         const modelURL = URL + "model.json";
@@ -96,12 +97,6 @@
         document.querySelector(".start-button").disabled = false;
       }
 
-      async function init() {
-        await webcam.setup(); // request access to the webcam
-        webcam.play();
-        window.requestAnimationFrame(loop);
-      }
-
       async function loop(timestamp) {
         if (isPaused || !isInitialized) return;
         webcam.update(); // update the webcam frame
@@ -112,21 +107,18 @@
       async function start() {
         if (!isInitialized) {
           isInitialized = true;
-          await init();
-          isPaused = false;
-          return;
+          await webcam.setup(); // request access to the webcam
         }
         if (isPaused) {
           isPaused = false;
           webcam.play();
           window.requestAnimationFrame(loop);
-          audio.play();
         }
       }
 
-      function pause() {
+      async function pause() {
         isPaused = true;
-        webcam.pause();
+        await webcam.pause();
         audio.pause();
       }
 
@@ -145,7 +137,7 @@
         }
       }
 
-      async function detectPositionChange(currentPosition, onPositionChange) {
+      function detectPositionChange(currentPosition) {
         latestPositions.push(currentPosition);
         const last3Positions = latestPositions.slice(-3);
         const [pos1, pos2, pos3] = last3Positions;
@@ -153,16 +145,60 @@
         if (pos1 === pos2 && pos2 === pos3) {
           stablePosition = pos1;
         }
+        if (!stablePosition) return [false, undefined];
         if (currentStablePosition === undefined) {
           currentStablePosition = stablePosition;
         } else if (stablePosition !== currentStablePosition) {
-          await onPositionChange(stablePosition);
           currentStablePosition = stablePosition;
+          return [true, stablePosition];
         }
+        return [false, undefined];
       }
 
-      async function onPositionChange(currentPosition) {
-        console.log(currentPosition);
+      function getNextChangeEventIndex(currentTime) {
+        return changeEvents
+          .slice(currentChangeEventIndex)
+          .findIndex(
+            ({ leeway }) =>
+              leeway.lowerBound <= currentTime &&
+              currentTime <= leeway.upperBound
+          );
+      }
+
+      const SCORE = {
+        HIT: "hit",
+        MISS: "miss",
+      };
+
+      function evaluateHitOrMiss(didPositionChange, position, currentTime) {
+        const targetChangeEventIndex = getNextChangeEventIndex(currentTime);
+        const changeEvent = changeEvents[currentChangeEventIndex];
+        if (!changeEvent) return;
+        if (didPositionChange) {
+          if (changeEvent.position === position) {
+            currentChangeEventIndex++;
+            return SCORE.HIT;
+          }
+        }
+        if (changeEvent.leeway.upperBound <= currentTime) {
+          currentChangeEventIndex = targetChangeEventIndex;
+          return SCORE.MISS;
+        }
+        // console.log(
+        //   nextChangeEventIndex,
+        //   currentChangeEventIndex,
+        //   position,
+        //   changeEvent.position,
+        //   currentTime,
+        //   changeEvent.leeway.upperBound
+        // );
+        // if (
+        //   changeEvent.position !== position &&
+        //   changeEvent.leeway.upperBound <= currentTime
+        // ) {
+        //   currentChangeEventIndex = nextChangeEventIndex;
+        //   return SCORE.MISS;
+        // }
       }
 
       async function runFrame() {
@@ -170,9 +206,21 @@
         // estimatePose can take in an image, video or canvas html element
         const { pose, posenetOutput } = await model.estimatePose(webcam.canvas);
         const currentPosition = await getCurrentPosition(posenetOutput);
-        console.log(currentPosition);
-        await detectPositionChange(currentPosition, onPositionChange);
-        drawPose(pose);
+        const [didPositionChange, newPosition] = detectPositionChange(
+          currentPosition
+        );
+        const { currentTime } = audio;
+        const result = evaluateHitOrMiss(
+          didPositionChange,
+          currentPosition,
+          currentTime
+        );
+        if (result !== undefined) console.log(result);
+        await drawPose(pose);
+
+        if (audio.paused && !isPaused) {
+          audio.play();
+        }
       }
 
       function drawPose(pose) {
