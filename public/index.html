@@ -136,7 +136,7 @@
         }
       }
 
-      function detectPositionChange(currentPosition) {
+      function normalizePosition(currentPosition) {
         latestPositions.push(currentPosition);
         const last3Positions = latestPositions.slice(-3);
         const [pos1, pos2, pos3] = last3Positions;
@@ -144,14 +144,14 @@
         if (pos1 === pos2 && pos2 === pos3) {
           stablePosition = pos1;
         }
-        if (!stablePosition) return [false, undefined];
-        if (currentStablePosition === undefined) {
+        if (!stablePosition) return currentStablePosition;
+        if (
+          currentStablePosition === undefined ||
+          stablePosition !== currentStablePosition
+        ) {
           currentStablePosition = stablePosition;
-        } else if (stablePosition !== currentStablePosition) {
-          currentStablePosition = stablePosition;
-          return [true, stablePosition];
         }
-        return [false, undefined];
+        return currentStablePosition;
       }
 
       function getCurrentChangeEvent(currentTime) {
@@ -166,7 +166,8 @@
         MISS: "miss",
       };
 
-      function evaluateHitOrMiss(didPositionChange, position, currentTime) {
+      function evaluateHitOrMiss(position, currentTime) {
+        let event;
         const latestNotDoneChangeEvent = changeEvents.find(
           ({ result }) => !result
         );
@@ -175,15 +176,19 @@
           latestNotDoneChangeEvent &&
           currentTime >= latestNotDoneChangeEvent.leeway.upperBound
         ) {
+          event = SCORE.MISS;
           latestNotDoneChangeEvent.result = { score: SCORE.MISS };
         }
 
         const targetChangeEvent = getCurrentChangeEvent(currentTime);
-        if (!targetChangeEvent || targetChangeEvent.result) return;
+        if (!targetChangeEvent || targetChangeEvent.result) return event;
 
         if (targetChangeEvent.position === position) {
           targetChangeEvent.result = { score: SCORE.HIT, time: currentTime };
+          event = SCORE.HIT;
         }
+
+        return event;
       }
 
       async function runFrame() {
@@ -191,11 +196,10 @@
         // estimatePose can take in an image, video or canvas html element
         const { pose, posenetOutput } = await model.estimatePose(webcam.canvas);
         const currentPosition = await getCurrentPosition(posenetOutput);
-        const [didPositionChange, newPosition] = detectPositionChange(
-          currentPosition
-        );
+        const position = normalizePosition(currentPosition);
         const { currentTime } = audio;
-        evaluateHitOrMiss(didPositionChange, currentPosition, currentTime);
+        const hitOrMiss = evaluateHitOrMiss(position, currentTime);
+        if (hitOrMiss) console.log(hitOrMiss);
         await drawPose(pose);
 
         if (audio.paused && !isPaused) {
