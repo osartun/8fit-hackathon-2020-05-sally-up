@@ -70,8 +70,7 @@
         isInitialized,
         isPaused = true,
         currentStablePosition,
-        latestPositions = [],
-        currentChangeEventIndex = 0;
+        latestPositions = [];
 
       async function setup() {
         const modelURL = URL + "model.json";
@@ -155,14 +154,11 @@
         return [false, undefined];
       }
 
-      function getNextChangeEventIndex(currentTime) {
-        return changeEvents
-          .slice(currentChangeEventIndex)
-          .findIndex(
-            ({ leeway }) =>
-              leeway.lowerBound <= currentTime &&
-              currentTime <= leeway.upperBound
-          );
+      function getCurrentChangeEvent(currentTime) {
+        return changeEvents.find(
+          ({ leeway }) =>
+            leeway.lowerBound <= currentTime && currentTime <= leeway.upperBound
+        );
       }
 
       const SCORE = {
@@ -171,34 +167,23 @@
       };
 
       function evaluateHitOrMiss(didPositionChange, position, currentTime) {
-        const targetChangeEventIndex = getNextChangeEventIndex(currentTime);
-        const changeEvent = changeEvents[currentChangeEventIndex];
-        if (!changeEvent) return;
-        if (didPositionChange) {
-          if (changeEvent.position === position) {
-            currentChangeEventIndex++;
-            return SCORE.HIT;
-          }
+        const latestNotDoneChangeEvent = changeEvents.find(
+          ({ result }) => !result
+        );
+
+        if (
+          latestNotDoneChangeEvent &&
+          currentTime >= latestNotDoneChangeEvent.leeway.upperBound
+        ) {
+          latestNotDoneChangeEvent.result = { score: SCORE.MISS };
         }
-        if (changeEvent.leeway.upperBound <= currentTime) {
-          currentChangeEventIndex = targetChangeEventIndex;
-          return SCORE.MISS;
+
+        const targetChangeEvent = getCurrentChangeEvent(currentTime);
+        if (!targetChangeEvent || targetChangeEvent.result) return;
+
+        if (targetChangeEvent.position === position) {
+          targetChangeEvent.result = { score: SCORE.HIT, time: currentTime };
         }
-        // console.log(
-        //   nextChangeEventIndex,
-        //   currentChangeEventIndex,
-        //   position,
-        //   changeEvent.position,
-        //   currentTime,
-        //   changeEvent.leeway.upperBound
-        // );
-        // if (
-        //   changeEvent.position !== position &&
-        //   changeEvent.leeway.upperBound <= currentTime
-        // ) {
-        //   currentChangeEventIndex = nextChangeEventIndex;
-        //   return SCORE.MISS;
-        // }
       }
 
       async function runFrame() {
@@ -210,12 +195,7 @@
           currentPosition
         );
         const { currentTime } = audio;
-        const result = evaluateHitOrMiss(
-          didPositionChange,
-          currentPosition,
-          currentTime
-        );
-        if (result !== undefined) console.log(result);
+        evaluateHitOrMiss(didPositionChange, currentPosition, currentTime);
         await drawPose(pose);
 
         if (audio.paused && !isPaused) {
