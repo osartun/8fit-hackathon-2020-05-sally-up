@@ -131,3 +131,17 @@ body {
   border-radius: 100px;
   color: white;
 }
+
+#current-position {
+  position: fixed;
+  bottom: 0;
+  right: 0;
+  background: white;
+  font-size: 40px;
+}
+
+#current-position::before {
+  display: block;
+  content: "Current:";
+  font-size: 20px;
+}

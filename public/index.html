@@ -21,21 +21,21 @@
       GO!
     </button>
     <button type="button" class="pause-button" onclick="pause()">Pause</button>
+    <div id="current-position"></div>
     <script src="sally-up-data-event.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/pose@0.8.3/dist/teachablemachine-pose.min.js"></script>
     <script type="text/javascript">
       const currentPositionEl = document.getElementById("current-position");
-      const scoreEl = document.getElementById("score");
       // More API functions here:
       // https://github.com/googlecreativelab/teachablemachine-community/tree/master/libraries/pose
 
       // the link to your model provided by Teachable Machine export panel
-      // const URL = "https://teachablemachine.withgoogle.com/models/6iVP_iE9X/";
+      const URL = "https://teachablemachine.withgoogle.com/models/6iVP_iE9X/";
 
       // Uncomment this for development / debugging. For this you only need to lift your right fist
       // in front of you.
-      const URL = "https://teachablemachine.withgoogle.com/models/sGa15i7Xt/";
+      // const URL = "https://teachablemachine.withgoogle.com/models/sGa15i7Xt/";
 
       const DOWN = "down";
       const UP = "up";
@@ -173,7 +173,8 @@
       };
 
       function evaluateHitOrMiss(position, currentTime) {
-        let event;
+        let hitOrMiss;
+        let eventInQuestion;
         const latestNotDoneChangeEvent = changeEvents.find(
           ({ result }) => !result
         );
@@ -182,19 +183,22 @@
           latestNotDoneChangeEvent &&
           currentTime >= latestNotDoneChangeEvent.leeway.upperBound
         ) {
-          event = SCORE.MISS;
           latestNotDoneChangeEvent.result = { score: SCORE.MISS };
+          hitOrMiss = SCORE.MISS;
+          eventInQuestion = latestNotDoneChangeEvent;
         }
 
         const targetChangeEvent = getCurrentChangeEvent(currentTime);
-        if (!targetChangeEvent || targetChangeEvent.result) return event;
+        if (!targetChangeEvent || targetChangeEvent.result)
+          return [hitOrMiss, eventInQuestion];
 
         if (targetChangeEvent.position === position) {
           targetChangeEvent.result = { score: SCORE.HIT, time: currentTime };
-          event = SCORE.HIT;
+          hitOrMiss = SCORE.HIT;
+          eventInQuestion = targetChangeEvent;
         }
 
-        return event;
+        return [hitOrMiss, eventInQuestion];
       }
 
       async function runFrame() {
@@ -203,9 +207,13 @@
         const { pose, posenetOutput } = await model.estimatePose(webcam.canvas);
         const currentPosition = await getCurrentPosition(posenetOutput);
         const position = normalizePosition(currentPosition);
+        currentPositionEl.textContent = position;
         const { currentTime } = audio;
-        const hitOrMiss = evaluateHitOrMiss(position, currentTime);
-        updateGameDisplay(hitOrMiss);
+        const [hitOrMiss, changeEvent] = evaluateHitOrMiss(
+          position,
+          currentTime
+        );
+        updateGameDisplay(hitOrMiss, changeEvent);
         await drawPose(pose);
 
         if (audio.paused && !isPaused) {
@@ -246,32 +254,43 @@
         hitOrMissContainer.appendChild(hitOrMissCopyEl);
       }
 
-      function updateWorkoutNavigator(hitOrMiss) {
+      function workoutNavigatorMoveNext() {
         const lineEls = workoutNavigatorEl.children;
         const { currentIndex } = workoutNavigatorState;
         const prevLine = lineEls[currentIndex - 1];
         const currentLine = lineEls[currentIndex];
         const nextLine = lineEls[currentIndex + 1];
         const nextNextLine = lineEls[currentIndex + 2];
-        // const { currentTime } = audio;
-        // const changeEvent = getCurrentChangeEvent(currentTime);
-        // if (!changeEvent) return;
 
-        if (hitOrMiss) {
-          if (currentLine) {
-            currentLine.classList.add(hitOrMiss);
-          }
-          workoutNavigatorState.currentIndex++;
-          if (prevLine) prevLine.classList.replace("prev", "disappear-top");
-          if (currentLine) currentLine.classList.replace("current", "prev");
-          if (nextLine) nextLine.classList.replace("next", "current");
-          if (nextNextLine) nextNextLine.classList.add("next");
-        }
+        workoutNavigatorState.currentIndex++;
+        if (prevLine) prevLine.classList.replace("prev", "disappear-top");
+        if (currentLine) currentLine.classList.replace("current", "prev");
+        if (nextLine) nextLine.classList.replace("next", "current");
+        if (nextNextLine) nextNextLine.classList.add("next");
       }
 
-      function updateGameDisplay(hitOrMiss) {
+      function updateWorkoutNavigator(hitOrMiss, hOMChangeEvent) {
+        if (hitOrMiss) {
+          const hOMChangeEventIndex = changeEvents.indexOf(hOMChangeEvent);
+          const lineEls = workoutNavigatorEl.children;
+          const lineEl = lineEls[hOMChangeEventIndex];
+          if (lineEl) {
+            lineEl.classList.add(hitOrMiss);
+          }
+        }
+
+        const { currentTime } = audio;
+        const changeEvent = getCurrentChangeEvent(currentTime);
+        if (!changeEvent) return;
+        const changeEventIndex = changeEvents.indexOf(changeEvent);
+        const { currentIndex } = workoutNavigatorState;
+
+        if (changeEventIndex > currentIndex) workoutNavigatorMoveNext();
+      }
+
+      function updateGameDisplay(hitOrMiss, changeEvent) {
         drawHitOrMissText(hitOrMiss);
-        updateWorkoutNavigator(hitOrMiss);
+        updateWorkoutNavigator(hitOrMiss, changeEvent);
       }
 
       function drawPose(pose) {
