@@ -15,13 +15,9 @@
     <div>
       <audio src="moby-flower-sally-up.mp3" id="sally-up-mp3"></audio>
     </div>
-    <div>
-      <canvas
-        class="video-container"
-        id="canvas"
-        width="400"
-        height="400"
-      ></canvas>
+    <div class="canvas-container">
+      <canvas class="canvas" id="canvas" width="400" height="400"></canvas>
+      <div class="hit-or-miss-container"></div>
     </div>
     <div
       style="
@@ -63,6 +59,7 @@
         webcam,
         ctx,
         labelContainer,
+        hitOrMissContainer,
         maxPredictions,
         gameStatus,
         audio,
@@ -92,6 +89,7 @@
         // Initialize audio & gameStatus
         audio = document.getElementById("sally-up-mp3");
         gameStatus = document.getElementById("game-status");
+        hitOrMissContainer = document.querySelector(".hit-or-miss-container");
 
         document.querySelector(".start-button").disabled = false;
       }
@@ -199,12 +197,42 @@
         const position = normalizePosition(currentPosition);
         const { currentTime } = audio;
         const hitOrMiss = evaluateHitOrMiss(position, currentTime);
-        if (hitOrMiss) console.log(hitOrMiss);
+        updateGameDisplay(hitOrMiss);
         await drawPose(pose);
 
         if (audio.paused && !isPaused) {
           audio.play();
         }
+      }
+
+      const hitCopies = [
+        "Keep it up! 💪",
+        "You're doing great! 👏",
+        "Keep on going! ⚡️",
+        "Yaaasss! ✨",
+      ];
+
+      const missCopies = ["Miss! ❌", "Nope… 😬", "Miss! 🙅‍♀️"];
+
+      function getRandomCopy(listOfCopies) {
+        const randomIndex = parseInt(Math.random() * listOfCopies.length);
+        return listOfCopies[randomIndex];
+      }
+
+      function updateGameDisplay(hitOrMiss) {
+        if (hitOrMiss === undefined) return;
+
+        const hitOrMissCopyEl = document.createElement("div");
+
+        if (hitOrMiss === SCORE.HIT) {
+          hitOrMissCopyEl.textContent = getRandomCopy(hitCopies);
+          hitOrMissCopyEl.className = "hit-or-miss-text hit";
+        } else {
+          hitOrMissCopyEl.textContent = getRandomCopy(missCopies);
+          hitOrMissCopyEl.className = "hit-or-miss-text miss";
+        }
+
+        hitOrMissContainer.appendChild(hitOrMissCopyEl);
       }
 
       function drawPose(pose) {
