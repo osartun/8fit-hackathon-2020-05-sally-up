@@ -1,9 +1,8 @@
 body {
-  display: flex;
-  flex-direction: column;
-  font-family: "Public Sans", sans-serif;
-  align-items: center;
+  font-family: sans-serif;
   overflow-x: hidden;
+  margin: auto;
+  text-align: center;
 }
 
 .canvas-container {
@@ -33,6 +32,10 @@ body {
     transform: scale(1);
   }
 
+  20% {
+    opacity: 1;
+  }
+
   to {
     opacity: 0;
     transform: scale(5);
@@ -52,6 +55,56 @@ body {
 
 .hit-or-miss-text.miss {
   color: maroon;
+}
+
+.workout-navigator {
+  position: relative;
+  width: 400px;
+  margin: auto;
+  height: 90px;
+  overflow: hidden;
+}
+
+.workout-navigator-line {
+  position: absolute;
+  top: 90px;
+  font-family: sans-serif;
+  font-weight: bold;
+  font-size: 25px;
+  line-height: 30px;
+  text-transform: capitalize;
+  transform: scale(0);
+  transition-property: transform, top;
+  transition-duration: 0.2s;
+  transform-origin: left center;
+}
+
+.workout-navigator-line.next {
+  transform: scale(0.8);
+  top: 60px;
+}
+
+.workout-navigator-line.current {
+  transform: scale(1.2);
+  top: 30px;
+}
+
+.workout-navigator-line.prev {
+  transform: scale(0.8);
+  top: 0;
+}
+
+.workout-navigator-line.disappear-top {
+  transform: scale(0);
+  top: 0;
+}
+
+.workout-navigator-line.miss::after {
+  content: " ❌";
+}
+
+.workout-navigator-line.hit::after {
+  content: " ✅";
 }
 
 .start-button {
@@ -77,51 +130,4 @@ body {
   width: 50px;
   border-radius: 100px;
   color: white;
-}
-
-.score {
-  align-items: center;
-  justify-content: center;
-  width: 200px;
-  height: 100px;
-  transition: background-color 0.1s;
-  background-color: grey;
-  font-size: large;
-  color: white;
-}
-
-.score::after {
-  content: "?";
-}
-
-.hit {
-  background-color: lime;
-}
-
-.hit::after {
-  content: "Keep it up!";
-}
-
-.miss {
-  background-color: palevioletred;
-}
-
-.miss::after {
-  content: "Miss!";
-}
-
-.current-position {
-  font-size: 24px;
-}
-
-.current-position::after {
-  content: "???";
-}
-
-.down::after {
-  content: "Squatting";
-}
-
-.up::after {
-  content: "Up";
 }

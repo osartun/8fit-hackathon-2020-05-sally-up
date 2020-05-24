@@ -10,26 +10,13 @@
   </head>
   <body>
     <div>
-      <h1>Sally Up! Challenge</h1>
-    </div>
-    <div>
       <audio src="moby-flower-sally-up.mp3" id="sally-up-mp3"></audio>
     </div>
     <div class="canvas-container">
       <canvas class="canvas" id="canvas" width="400" height="400"></canvas>
       <div class="hit-or-miss-container"></div>
     </div>
-    <div
-      style="
-        display: flex;
-        flex-direction: row;
-        justify-content: space-between;
-        width: 400px;
-      "
-    >
-      <span class="current-position" id="current-position" />
-      <span id="score" class="score-"></span>
-    </div>
+    <div class="workout-navigator"></div>
     <button type="button" class="start-button" onclick="start()" disabled>
       GO!
     </button>
@@ -54,12 +41,16 @@
       const UP = "up";
       const NONE = "none";
       const changeEvents = window.changeEvents;
+      const workoutNavigatorState = {
+        currentIndex: -1,
+      };
 
       let model,
         webcam,
         ctx,
         labelContainer,
         hitOrMissContainer,
+        workoutNavigatorEl,
         maxPredictions,
         gameStatus,
         audio,
@@ -78,7 +69,7 @@
         model = await tmPose.load(modelURL, metadataURL);
         maxPredictions = model.getTotalClasses();
 
-        // Convenience function to setup a webcam
+        // // Convenience function to setup a webcam
         const flip = true; // whether to flip the webcam
         webcam = new tmPose.Webcam(400, 400, flip); // width, height, flip
 
@@ -90,8 +81,25 @@
         audio = document.getElementById("sally-up-mp3");
         gameStatus = document.getElementById("game-status");
         hitOrMissContainer = document.querySelector(".hit-or-miss-container");
+        workoutNavigatorEl = document.querySelector(".workout-navigator");
+
+        initializeWorkoutNavigator();
 
         document.querySelector(".start-button").disabled = false;
+      }
+
+      function initializeWorkoutNavigator() {
+        const fragment = document.createDocumentFragment();
+        const nextIndex = workoutNavigatorState.currentIndex + 1;
+        changeEvents.forEach((changeEvent, i) => {
+          const div = document.createElement("div");
+          const classNames = ["workout-navigator-line"];
+          if (i === nextIndex) classNames.push("next");
+          div.className = classNames.join(" ");
+          div.textContent = changeEvent.position;
+          fragment.appendChild(div);
+        });
+        workoutNavigatorEl.appendChild(fragment);
       }
 
       async function loop(timestamp) {
@@ -206,22 +214,25 @@
       }
 
       const hitCopies = [
-        "Keep it up! 💪",
-        "You're doing great! 👏",
-        "Keep on going! ⚡️",
-        "Yaaasss! ✨",
+        "Yes! 💪",
+        "Great! 👏",
+        "Keep it up! ⚡️",
+        "Amazing! ✨",
+        "Super! 🤩",
+        "Awesome! 🥳",
       ];
 
-      const missCopies = ["Miss! ❌", "Nope… 😬", "Miss! 🙅‍♀️"];
+      const missCopies = ["Miss! ❌", "Nope… 😬", "No! 🙅‍♀️", "🙈", "😣"];
 
       function getRandomCopy(listOfCopies) {
         const randomIndex = parseInt(Math.random() * listOfCopies.length);
         return listOfCopies[randomIndex];
       }
 
-      function updateGameDisplay(hitOrMiss) {
+      function drawHitOrMissText(hitOrMiss) {
         if (hitOrMiss === undefined) return;
 
+        hitOrMissContainer.innerHTML = "";
         const hitOrMissCopyEl = document.createElement("div");
 
         if (hitOrMiss === SCORE.HIT) {
@@ -233,6 +244,34 @@
         }
 
         hitOrMissContainer.appendChild(hitOrMissCopyEl);
+      }
+
+      function updateWorkoutNavigator(hitOrMiss) {
+        const lineEls = workoutNavigatorEl.children;
+        const { currentIndex } = workoutNavigatorState;
+        const prevLine = lineEls[currentIndex - 1];
+        const currentLine = lineEls[currentIndex];
+        const nextLine = lineEls[currentIndex + 1];
+        const nextNextLine = lineEls[currentIndex + 2];
+        // const { currentTime } = audio;
+        // const changeEvent = getCurrentChangeEvent(currentTime);
+        // if (!changeEvent) return;
+
+        if (hitOrMiss) {
+          if (currentLine) {
+            currentLine.classList.add(hitOrMiss);
+          }
+          workoutNavigatorState.currentIndex++;
+          if (prevLine) prevLine.classList.replace("prev", "disappear-top");
+          if (currentLine) currentLine.classList.replace("current", "prev");
+          if (nextLine) nextLine.classList.replace("next", "current");
+          if (nextNextLine) nextNextLine.classList.add("next");
+        }
+      }
+
+      function updateGameDisplay(hitOrMiss) {
+        drawHitOrMissText(hitOrMiss);
+        updateWorkoutNavigator(hitOrMiss);
       }
 
       function drawPose(pose) {
