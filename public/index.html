@@ -40,7 +40,6 @@
       const DOWN = "down";
       const UP = "up";
       const NONE = "none";
-      const changeEvents = window.changeEvents;
       const workoutNavigatorState = {
         currentIndex: -1,
       };
@@ -48,6 +47,7 @@
       let model,
         webcam,
         ctx,
+        changeEvents,
         labelContainer,
         hitOrMissContainer,
         workoutNavigatorEl,
@@ -60,7 +60,25 @@
         currentStablePosition,
         latestPositions = [];
 
+      function getChangeEvents() {
+        const UPPER_BOUND_LEEWAY = 0.6;
+        const LOWER_BOUND_LEEWAY = 0.3;
+        return window.changeEvents.map(({ time, position }) => {
+          const leeway = {
+            lowerBound: Math.max(time - LOWER_BOUND_LEEWAY, 0),
+            upperBound: time + UPPER_BOUND_LEEWAY,
+          };
+          return {
+            time,
+            position,
+            leeway,
+          };
+        });
+      }
+
       async function setup() {
+        changeEvents = getChangeEvents();
+
         const modelURL = URL + "model.json";
         const metadataURL = URL + "metadata.json";
 
